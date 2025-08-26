@@ -41,15 +41,10 @@ const MVPDisplay = ({ seriesName, matchName, mvpPlayer }: any) => {
           className={`flex w-[750px] transform justify-center transition-all delay-75 duration-1000 ease-in-out ${mvpPlayer?.teamName ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"} relative`}
         >
           <Image
-            src={`/assets/images/logo.png`}
-            alt=""
-            className="h-[600px] w-[450px] rounded-none object-cover"
-          />
-          {/* <Image
             src={`/assets/images/players/${mvpPlayer?.uId}.png`}
             alt=""
             className="h-[600px] w-[450px] rounded-none object-cover"
-          /> */}
+          />
         </div>
       </div>
 

@@ -11,16 +11,16 @@ const PlayerImage = ({ observedPlayer }: any) => {
     >
       <div className="relative flex h-full w-full items-end justify-center">
         {/* change */}
-        {/* <Image
+        <Image
           src={`/assets/images/players/${observedPlayer}.png`}
           alt=""
           className="h-[200px] w-[200px] object-contain"
-        /> */}
-        <Image
+        />
+        {/* <Image
           src={`/assets/images/logo.png`}
           alt=""
           className="h-[200px] w-[200px] object-contain"
-        />
+        /> */}
       </div>
     </motion.div>
   );

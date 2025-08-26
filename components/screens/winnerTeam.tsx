@@ -103,10 +103,9 @@ const WinnerTeam = ({
                       screenIndex === 1
                         ? "translate-y-0 opacity-100"
                         : "translate-y-8 opacity-0"
-                    } z-20 flex h-full w-[334px] flex-col items-start justify-end space-y-8 bg-gradient-to-t from-black to-transparent p-4`}
+                    } z-20 flex h-full w-[345px] flex-col items-start justify-end space-y-8 bg-gradient-to-t from-black to-transparent p-4`}
                     style={{ transitionDelay: `${(index + 1) * 150}ms` }}
                   >
-                    {/* <div className="absolute left-0 top-0 z-20 h-[900px] w-full bg-gradient-to-t from-black to-transparent"></div> */}
                     <div className="z-30 text-[#CFE356]">
                       <p className="text-5xl">{player.killNum}</p>
                       <p className="text-medium">ELIMS</p>
@@ -132,10 +131,68 @@ const WinnerTeam = ({
                         className="absolute bottom-0 right-0 z-10 flex h-full w-full items-end"
                       >
                         {/* change */}
+                        <Image
+                          src={`/assets/images/players/${player?.uId}.png`}
+                          alt=""
+                          className="h-[600px] w-[325.5px] object-cover object-bottom"
+                        />
+                        {/* <Image
+                          src={`https://blog.kakaocdn.net/dna/eQC59S/btsMUX2gfA6/AAAAAAAAAAAAAAAAAAAAAKP2atoePRCWdrBpDrX3SKOZvuXjC82g9brWD409bB9u/img.png?credential=yqXZFxpELC7KVnFOS48ylbz2pIh7yKj8&expires=1756652399&allow_ip=&allow_referer=&signature=IvjMehLXb%2BayH%2BI9tdTZeQRteoQ%3D`}
+                          alt=""
+                          className="h-[600px] w-[325.5px] object-cover object-bottom"
+                        /> */}
+                      </motion.div>
+                    </AnimatePresence>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            );
+          })}
+          {Array.from({ length: 4 - matchWinners?.length }).map((_, index) => {
+            return (
+              <div key={index}>
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className={`relative transform transition-all duration-1000 ease-in-out ${
+                      screenIndex === 1
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-8 opacity-0"
+                    } z-20 flex h-full w-[345px] flex-col items-start justify-end space-y-8 bg-gradient-to-t from-black to-transparent p-4`}
+                    style={{ transitionDelay: `${(index + 1) * 150}ms` }}
+                  >
+                    {/* <div className="absolute left-0 top-0 z-20 h-[900px] w-full bg-gradient-to-t from-black to-transparent"></div> */}
+                    <div className="z-30 text-[#CFE356]">
+                      <p className="text-5xl">0</p>
+                      <p className="text-medium">ELIMS</p>
+                    </div>
+                    <div className="z-30 text-[#CFE356]">
+                      <p className="text-5xl">0</p>
+                      <p className="text-medium">DAMAGE</p>
+                    </div>
+                    <div className="z-30 text-[#CFE356]">
+                      <p className="text-5xl">0</p>
+                      <p className="text-medium">KNOCKOUTS</p>
+                    </div>
+                    <div className="z-30 text-[#CFE356]">
+                      <p className="text-5xl">0</p>
+                      <p className="text-medium">RESCUE</p>
+                    </div>
+
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1, delay: index * 0.1 }}
+                        className="absolute bottom-0 right-0 z-10 flex h-full w-full items-end"
+                      >
+                        {/* change */}
                         {/* <Image
                           src={`/assets/images/players/${player?.uId}.png`}
                           alt=""
-                          className="h-[600px] w-[335.5px] object-cover object-bottom"
+                          className="h-[600px] w-[325.5px] object-cover object-bottom"
                         /> */}
                       </motion.div>
                     </AnimatePresence>

@@ -1,3 +1,4 @@
+import { Image } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
 const MatchRankings2 = ({ matchTeams, seriesName, matchName }: any) => {
   return (
@@ -91,11 +92,11 @@ const MatchRankings2 = ({ matchTeams, seriesName, matchName }: any) => {
           transition={{ duration: 0.5 }}
           className="flex w-[700px] items-center justify-center"
         >
-          {/* <Image
-            src={`/assets/images/teamsTogether/${matchTeams[0]?.teamName}.png`}
+          <Image
+            src={`/assets/images/teams/${matchTeams[0]?.teamName}.png`}
             alt=""
-            className="z-20 h-[276px] w-[700px] object-contain"
-          /> */}
+            className="z-20 h-[250px] w-[700px] object-contain"
+          />
         </motion.div>
         <div className="flex w-[230px] flex-col items-center justify-center uppercase text-neutral-800">
           {/* <p className="text-lg uppercase">team</p> */}
