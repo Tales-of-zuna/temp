@@ -1,4 +1,4 @@
-"use client";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const AutoNotifs = ({
@@ -7,87 +7,144 @@ const AutoNotifs = ({
   teamInfo,
   isInGame,
 }: any) => {
-  const [notifications, setNotifications] = useState<any>([]);
-  const [circleTimer, setCircleTimer] = useState<any>(null);
+  const [notificationQueue, setNotificationQueue] = useState<any[]>([]);
+  const [currentNotification, setCurrentNotification] = useState<any>(null);
+  const [circleTimer, setCircleTimer] = useState<number | null>(null);
+
   const circleTimerIntervalRef = useRef<any>(null);
   const firstBloodShownRef = useRef(false);
-
   const prevPlayersRef = useRef<any>({});
-  const prevTeamInfoRef = useRef<any>(null);
+  const prevTeamInfoRef = useRef<any>({});
+  const notificationTimeoutRef = useRef<any>(null);
+  const processingQueueRef = useRef(false);
 
-  const addNotification = useCallback((type: any, data: any) => {
+  useEffect(() => {
+    if (
+      notificationQueue.length > 0 &&
+      !currentNotification &&
+      !processingQueueRef.current
+    ) {
+      processingQueueRef.current = true;
+      const [next, ...rest] = notificationQueue;
+      setNotificationQueue(rest);
+      setCurrentNotification(next);
+
+      notificationTimeoutRef.current = setTimeout(() => {
+        setCurrentNotification(null);
+        processingQueueRef.current = false;
+      }, 5000);
+    }
+
+    return () => {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
+  }, [notificationQueue, currentNotification]);
+
+  const addNotification = useCallback((type: string, data: any) => {
     const id = crypto.randomUUID();
-    const newNotification = { id, type, data, timestamp: Date.now() };
+    const newNotification = {
+      id,
+      type,
+      data,
+      timestamp: Date.now(),
+    };
 
-    setNotifications((prev: any) => [...prev, newNotification]);
-
-    setTimeout(() => {
-      setNotifications((prev: any) =>
-        prev.filter((notif: any) => notif.id !== id),
-      );
-    }, 5000);
+    setNotificationQueue((prev) => [...prev, newNotification]);
   }, []);
+
+  useEffect(() => {
+    if (isInGame) {
+      firstBloodShownRef.current = false;
+      prevPlayersRef.current = {};
+      prevTeamInfoRef.current = {};
+      setNotificationQueue([]);
+      setCurrentNotification(null);
+    }
+  }, [isInGame]);
 
   useEffect(() => {
     if (!isInGame || !teamInfo) return;
 
-    if (prevTeamInfoRef.current?.liveMemberNum === teamInfo.liveMemberNum) {
-      prevTeamInfoRef.current = teamInfo;
-      return;
-    }
+    Object.entries(teamInfo).forEach(([teamId, team]: any) => {
+      const prevTeam = prevTeamInfoRef.current[teamId];
 
-    if (teamInfo.liveMemberNum === 0) {
-      addNotification("teamEliminated", {
-        teamName: teamInfo.teamName,
-        kills: teamInfo.killNum,
-      });
-    }
+      if (prevTeam && prevTeam.liveMemberNum > 0 && team.liveMemberNum === 0) {
+        addNotification("teamEliminated", {
+          teamName: team.teamName,
+          kills: team.killNum,
+        });
+      }
 
-    prevTeamInfoRef.current = teamInfo;
+      prevTeamInfoRef.current[teamId] = { ...team };
+    });
   }, [teamInfo, addNotification, isInGame]);
 
   useEffect(() => {
     if (!totalPlayerList?.length || !isInGame) return;
 
     totalPlayerList.forEach((player: any) => {
-      const prevPlayer = prevPlayersRef.current[player.id] || {
+      const prevPlayer = prevPlayersRef.current[player.uId] || {
         killNumByGrenade: 0,
         killNumInVehicle: 0,
         killNum: 0,
       };
 
-      // First blood logic
       if (!firstBloodShownRef.current && player.killNum > 0) {
         firstBloodShownRef.current = true;
 
-        let killType = "firstBlood";
-
         if (player.killNumByGrenade > 0) {
-          killType = "firstBloodGrenade";
+          addNotification("firstBloodGrenade", {
+            playerName: player.playerName,
+            teamName: player.teamName,
+          });
         } else if (player.killNumInVehicle > 0) {
-          killType = "firstBloodVehicle";
+          addNotification("firstBloodVehicle", {
+            playerName: player.playerName,
+            teamName: player.teamName,
+          });
+        } else {
+          addNotification("firstBlood", {
+            playerName: player.playerName,
+            teamName: player.teamName,
+          });
+        }
+      } else {
+        if (
+          player.killNumByGrenade > prevPlayer.killNumByGrenade &&
+          firstBloodShownRef.current
+        ) {
+          const isFirstGrenadeKill = !Object.values(
+            prevPlayersRef.current,
+          ).some((p: any) => p.killNumByGrenade > 0);
+
+          if (isFirstGrenadeKill) {
+            addNotification("firstGrenadeKill", {
+              playerName: player.playerName,
+              teamName: player.teamName,
+            });
+          }
         }
 
-        addNotification(killType, {
-          playerName: player.playerName,
-        });
+        if (
+          player.killNumInVehicle > prevPlayer.killNumInVehicle &&
+          firstBloodShownRef.current
+        ) {
+          const isFirstVehicleKill = !Object.values(
+            prevPlayersRef.current,
+          ).some((p: any) => p.killNumInVehicle > 0);
+
+          if (isFirstVehicleKill) {
+            addNotification("firstVehicleKill", {
+              playerName: player.playerName,
+              teamName: player.teamName,
+            });
+          }
+        }
       }
 
-      // Track grenade kills
-      if (player.killNumByGrenade > prevPlayer.killNumByGrenade) {
-        addNotification("grenadeKill", {
-          playerName: player.playerName,
-        });
-      }
-
-      // Track vehicle kills
-      if (player.killNumInVehicle > prevPlayer.killNumInVehicle) {
-        addNotification("vehicleKill", {
-          playerName: player.playerName,
-        });
-      }
-
-      prevPlayersRef.current[player.id] = {
+      prevPlayersRef.current[player.uId] = {
         killNumByGrenade: player.killNumByGrenade,
         killNumInVehicle: player.killNumInVehicle,
         killNum: player.killNum,
@@ -111,7 +168,7 @@ const AutoNotifs = ({
       }
 
       const intervalId = setInterval(() => {
-        setCircleTimer((prev: any) => {
+        setCircleTimer((prev) => {
           if (prev !== null && prev > 0) {
             return prev - 1;
           } else {
@@ -137,78 +194,197 @@ const AutoNotifs = ({
     };
   }, [circleInfo, isInGame]);
 
-  const renderNotification = (notification: any) => {
-    // switch (notification.type) {
-    //   case "teamEliminated":
-    //     return (
-    //       <div
-    //         key={notification.id}
-    //         className="absolute left-[830px] top-[200px] z-10 flex h-[90px] w-[275px] bg-cyan-600 bg-opacity-30"
-    //       >
-    //         {notification.data.teamName}
-    //         {notification.data.kills}
-    //         <p className="text-xl font-bold">Eliminated</p>
-    //       </div>
-    //     );
-    //   case "grenadeKill":
-    //   case "vehicleKill":
-    //   case "firstBlood":
-    //   case "firstBloodGrenade":
-    //   case "firstBloodVehicle":
-    //     return (
-    //       <motion.div
-    //         key={notification.id}
-    //         initial={{ opacity: 0, x: 50 }}
-    //         animate={{ opacity: 1, x: 0 }}
-    //         transition={{ duration: 0.5 }}
-    //         className="absolute left-0 top-[350px] z-10 flex w-96 items-center justify-center"
-    //       >
-    //         <video
-    //           src="assets/videos/mininotif.mp4"
-    //           autoPlay
-    //           loop
-    //           muted
-    //           className="h-full w-full object-cover"
-    //         ></video>
-    //         <div className="absolute left-0 top-2 z-30 flex w-full items-center justify-center font-bold">
-    //           <p className="text-5xl text-neutral-800">
-    //             {notification.type === "firstBlood" && `FIRST BLOOD`}
-    //             {notification.type === "firstBloodGrenade" &&
-    //               `FIRST GRENADE KILL`}
-    //             {notification.type === "firstBloodVehicle" &&
-    //               `FIRST VEHICLE KILL`}
-    //             {notification.type === "grenadeKill" && `GRENADE KILL`}
-    //             {notification.type === "vehicleKill" && `VEHICLE KILL`}
-    //           </p>
-    //         </div>
-    //         <div className="absolute bottom-0 left-0 w-full text-center uppercase">
-    //           <p className="text-white">{notification.data.playerName}</p>
-    //         </div>
-    //       </motion.div>
-    //     );
-    //   default:
-    //     return null;
-    // }
-  };
+  const NotificationDisplay = ({ notification }: any) => {
+    if (!notification) return null;
 
-  return (
-    <div className="absolute left-0 top-0 z-10">
-      {circleTimer !== null && (
-        <div className="absolute left-[275px] top-[120px] z-10 flex h-[100px] w-[315px] bg-cyan-600 bg-opacity-30">
+    const getNotificationContent = () => {
+      switch (notification.type) {
+        case "firstBlood":
+          return {
+            title: "FIRST BLOOD",
+            subtitle: notification.data.playerName,
+            team: notification.data.teamName,
+            bgColor: "from-red-600 to-red-800",
+            icon: "🩸",
+          };
+        case "firstBloodGrenade":
+          return {
+            title: "FIRST BLOOD",
+            subtitle: notification.data.playerName,
+            team: notification.data.teamName,
+            subtext: "GRENADE KILL",
+            bgColor: "from-orange-600 to-red-800",
+            icon: "💥",
+          };
+        case "firstBloodVehicle":
+          return {
+            title: "FIRST BLOOD",
+            subtitle: notification.data.playerName,
+            team: notification.data.teamName,
+            subtext: "VEHICLE KILL",
+            bgColor: "from-purple-600 to-red-800",
+            icon: "🚗",
+          };
+        case "firstGrenadeKill":
+          return {
+            title: "FIRST GRENADE KILL",
+            subtitle: notification.data.playerName,
+            team: notification.data.teamName,
+            bgColor: "from-orange-500 to-orange-700",
+            icon: "💣",
+          };
+        case "firstVehicleKill":
+          return {
+            title: "FIRST VEHICLE KILL",
+            subtitle: notification.data.playerName,
+            team: notification.data.teamName,
+            bgColor: "from-purple-500 to-purple-700",
+            icon: "🚙",
+          };
+        case "teamEliminated":
+          return {
+            title: "TEAM ELIMINATED",
+            subtitle: notification.data.teamName,
+            subtext: `${notification.data.kills} ELIMINATIONS`,
+            bgColor: "from-gray-700 to-gray-900",
+            icon: "☠️",
+          };
+        default:
+          return null;
+      }
+    };
+
+    const content = getNotificationContent();
+    if (!content) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -50, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -50, scale: 0.9 }}
+        transition={{
+          duration: 0.5,
+          ease: [0.43, 0.13, 0.23, 0.96],
+        }}
+        className="relative w-[500px]"
+      >
+        <div className="absolute inset-0 overflow-hidden rounded-lg">
           <video
-            src="assets/videos/circleTimer.mp4"
+            src="/assets/videos/mininotif.mp4"
             autoPlay
             loop
             muted
-            className="h-full w-full object-cover"
-          ></video>
-          <div className="absolute right-0 top-0 flex h-full w-[90px] items-center justify-center text-4xl font-bold text-slate-800">
-            {circleTimer}
+            className="h-full w-full object-cover opacity-30"
+          />
+        </div>
+
+        <div
+          className={`relative bg-gradient-to-r ${content.bgColor} rounded-lg border border-white/20 shadow-2xl backdrop-blur-sm`}
+        >
+          <div className="flex items-center p-6">
+            <div className="mr-6 animate-pulse text-5xl">{content.icon}</div>
+
+            <div className="flex-1">
+              <motion.h2
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mb-1 text-3xl font-black uppercase tracking-wider text-white"
+              >
+                {content.title}
+              </motion.h2>
+
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center gap-2"
+              >
+                <p className="text-xl font-bold uppercase text-yellow-300">
+                  {content.subtitle}
+                </p>
+                {content.team && (
+                  <span className="text-lg text-white/80">
+                    [{content.team}]
+                  </span>
+                )}
+              </motion.div>
+
+              {content.subtext && (
+                <motion.p
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="mt-1 text-sm font-semibold uppercase text-white/70"
+                >
+                  {content.subtext}
+                </motion.p>
+              )}
+            </div>
           </div>
-          <div className="absolute right-0 top-0 flex h-full w-[200px] items-center justify-center text-wrap text-center text-3xl font-bold uppercase"></div>
+
+          <motion.div
+            className="absolute inset-0 rounded-lg"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+              backgroundSize: "200% 100%",
+            }}
+            animate={{
+              backgroundPosition: ["200% 0", "-200% 0"],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+        </div>
+      </motion.div>
+    );
+  };
+
+  return (
+    <>
+      <div className="absolute left-1/2 top-[15%] z-50 -translate-x-1/2 transform">
+        <AnimatePresence mode="wait">
+          {currentNotification && (
+            <NotificationDisplay notification={currentNotification} />
+          )}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {circleTimer !== null && (
+          <div className="absolute left-[275px] top-[120px] z-10 flex h-[100px] w-[315px] bg-cyan-600 bg-opacity-30">
+            <video
+              src="assets/videos/circleTimer.mp4"
+              autoPlay
+              loop
+              muted
+              className="h-full w-full object-cover"
+            ></video>
+            <div className="absolute right-0 top-0 flex h-full w-[90px] items-center justify-center text-4xl font-bold text-slate-800">
+              {circleTimer}
+            </div>
+            <div className="absolute right-0 top-0 flex h-full w-[200px] items-center justify-center text-wrap text-center text-3xl font-bold uppercase"></div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {notificationQueue.length > 0 && (
+        <div className="absolute left-1/2 top-[35%] z-40 -translate-x-1/2 transform">
+          <div className="flex gap-2">
+            {notificationQueue.slice(0, 3).map((_, index) => (
+              <div
+                key={index}
+                className="h-2 w-2 animate-pulse rounded-full bg-white/50"
+              />
+            ))}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
