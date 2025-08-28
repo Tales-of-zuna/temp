@@ -8,7 +8,7 @@ export const GET = async (req: NextRequest) => {
       signal: controller.signal,
     });
 
-    clearTimeout(timeout); // Clear timeout if request succeeds
+    clearTimeout(timeout);
     const data = await res.json();
     return NextResponse.json(data.teamInfoList);
   } catch (error) {

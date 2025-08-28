@@ -301,7 +301,7 @@ const AutoNotifs = ({
           };
         case "firstGrenadeKill":
           return {
-            title: "FIRST GRENADE KILL",
+            title: "GRENADE KILL",
             subtitle: notification.data.playerName,
             team: notification.data.teamName,
             bgColor: "bg-yellow-600 bg-opacity-20 backdrop-blur-xl",
@@ -309,7 +309,7 @@ const AutoNotifs = ({
           };
         case "firstVehicleKill":
           return {
-            title: "FIRST VEHICLE KILL",
+            title: "VEHICLE KILL",
             subtitle: notification.data.playerName,
             team: notification.data.teamName,
             bgColor: "bg-blue-600 bg-opacity-20 backdrop-blur-xl",

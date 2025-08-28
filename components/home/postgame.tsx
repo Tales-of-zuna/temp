@@ -20,7 +20,7 @@ const BattleScreen = ({
   const [mvpPlayer, setMvpPlayer] = useState<any>(null);
   const [matchWinners, setMatchWinners] = useState<any>([]);
   const [matchTeams, setMatchTeams] = useState<any>([]);
-  const [isMvpCalculated, setIsMvpCalculated] = useState<boolean>(false); // MVP calculation status
+  const [isMvpCalculated, setIsMvpCalculated] = useState<boolean>(false);
 
   const saveTeamData = async () => {
     const teamStats: any = {};
