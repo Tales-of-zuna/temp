@@ -55,18 +55,21 @@ const AutoNotifs = ({
   // Improved queue processing without flickering
   // Queue processor (only show one at a time)
   useEffect(() => {
+    if (currentNotification) {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+      notificationTimeoutRef.current = setTimeout(() => {
+        setCurrentNotification(null);
+      }, 5000);
+    }
+  }, [currentNotification]);
+
+  useEffect(() => {
     if (!currentNotification && notificationQueue.length > 0) {
       const [next, ...rest] = notificationQueue;
       setCurrentNotification(next);
       setNotificationQueue(rest);
-
-      // Start timeout only once
-      if (!notificationTimeoutRef.current) {
-        notificationTimeoutRef.current = setTimeout(() => {
-          setCurrentNotification(null);
-          notificationTimeoutRef.current = null;
-        }, 5000);
-      }
     }
   }, [notificationQueue, currentNotification]);
 
@@ -80,29 +83,18 @@ const AutoNotifs = ({
 
   const addNotification = useCallback(
     (type: string, data: any, eventId?: string) => {
-      // If eventId is provided, check if we've already processed this event
-      if (eventId && processedEventsRef.current.has(eventId)) {
-        return;
-      }
+      const id = eventId || crypto.randomUUID();
+      if (processedEventsRef.current.has(id)) return;
+      processedEventsRef.current.add(id);
 
-      if (eventId) {
-        processedEventsRef.current.add(eventId);
-      }
-
-      const id = crypto.randomUUID();
-      const newNotification = {
-        id,
-        type,
-        data,
-        timestamp: Date.now(),
-      };
-
-      setNotificationQueue((prev) => [...prev, newNotification]);
+      setNotificationQueue((prev) => [
+        ...prev,
+        { id, type, data, timestamp: Date.now() },
+      ]);
     },
     [],
   );
 
-  // Team elimination tracking
   // Team elimination tracking
   useEffect(() => {
     if (!isInGame || !teamInfo) return;
@@ -333,7 +325,13 @@ const AutoNotifs = ({
     if (!content) return null;
 
     return (
-      <motion.div className="relative w-[350px]">
+      <motion.div
+        className="relative w-[350px]"
+        initial={{ opacity: 0, y: -30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 30, scale: 0.95 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
         <div className="absolute inset-0 overflow-hidden rounded-lg">
           <video
             src="/assets/videos/background.mp4"
@@ -345,7 +343,7 @@ const AutoNotifs = ({
         </div>
 
         <div
-          className={`relative rounded-lg border border-white/20 bg-white bg-opacity-20 shadow-2xl`}
+          className={`relative rounded-lg border border-white/20 bg-black bg-opacity-30 shadow-2xl`}
         >
           <div className="flex items-center p-6">
             <div className="">
